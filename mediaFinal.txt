@@ -1,0 +1,271 @@
+section .data
+
+msg     db	'Digite um Número: ',0    ; Mensagem para solicitar entrada
+len     equ	$ - msg                  ; Comprimento da mensagem
+
+msg1    db	'Você digitou: ',0        ; Mensagem para mostrar a entrada
+len1    equ	$ - msg1                 ; Comprimento da mensagem
+
+msg2    db 'A média dos números acima é:',0   ; Mensagem para mostrar a média
+len2    equ $ - msg2                       ; Comprimento da mensagem
+
+msg3    db 'DIGITE 1 PARA REALIZAR OUTRO CÁLCULO OU 0 PARA FINALIZAR',0  ; Mensagem para continuar ou sair
+len3    equ $ - msg3                       ; Comprimento da mensagem
+
+msg4    db 'A média multiplicada por 100 é:',0    ; Mensagem para mostrar a média multiplicada por 100
+len4    equ $ - msg4                              ; Comprimento da mensagem
+
+msg5 db '----|CALCULADO DE MÉDIA|----',0
+len5 equ $ - msg5
+
+
+pularLinha db 10    ; Caractere de nova linha (\n)
+
+section .bss
+entrada     resb    5        ; Armazena a entrada do usuário como uma string
+
+
+section .text
+global _start
+_start:
+    ; Imprime a mensagem de cabeçalho
+    mov eax, msg5
+    call sprint
+
+    ; Imprime uma nova linha
+    mov eax, pularLinha
+    call sprint
+
+    mov eax, 0            ; Move 0 para eax
+    push eax               ; Adiciona 0 na pilha
+
+_pegar_numeros:
+   
+
+    mov     eax, msg          ; Move a mensagem para eax
+    call    sprint            ; Chama a função para imprimir a mensagem
+
+    mov     edx, 255
+    mov     ecx, entrada      ; Grava a entrada em ecx
+    mov     ebx, 0
+    mov     eax, 3            ; Chamada do sistema para ler a entrada
+    int     80h
+
+    mov     eax, entrada      ; Move a entrada para eax
+    call    atoi              ; Chama a função atoi para converter para inteiro
+
+_if:
+    cmp     eax, 0            ; Compara eax com 0
+    jnz     _adicionar_na_pilha   ; Se eax não for 0, vá para _caso_nao_for_0
+    jmp     _prepara_soma      ; Se eax for 0, vá para _prepara_soma
+
+_adicionar_na_pilha:
+    mov     ebx, eax           ; Move eax para ebx
+    mov     eax, msg1          ; Move a mensagem msg1 para eax
+    call    sprint             ; Imprime msg1
+
+    mov     eax, ebx           ; Move ebx (entrada) para eax
+    call    iprint             ; Imprime o número de entrada
+
+    push    eax                ; Adiciona o número de entrada à pilha
+    mov     eax, pularLinha       ; Move newline para eax
+    call    sprint             ; Imprime uma nova linha
+
+    jmp     _pegar_numeros      ; Volta para a seção _pegar_numeros
+
+_prepara_soma:
+    mov     ebx, eax           ; Move eax para ebx (ou seja, ebx agora vale 0)
+    mov     ecx, eax           ; Move eax para ecx (ou seja, ecx agora vale 0)
+
+_somar:
+    pop     eax                ; Retira o último número digitado da pilha
+    add     ebx, eax           ; Adiciona eax a ebx (soma total)
+    add     ecx, 1             ; Adiciona 1 a ecx para contar o número de valores
+    cmp     eax, 0             ; Compara eax com 0 para verificar se é o último número
+    jnz     _somar             ; Se não for o último número, volte para _somar
+
+_calcular_media:
+    mov     edx, 0             ; Define edx como 0
+    mov     eax, ebx           ; Move ebx (soma dos números) para eax
+    sub     ecx, 1             ; Subtrai 1 de ecx, pois na seção _somar ele conta o 0
+
+    cmp     ecx, 0             ; Compara ecx com 0 para evitar divisão por 0
+    je      _reiniciar         ; Se for 0, vá para _reiniciar
+
+    div     ecx                ; Divide eax por ecx
+
+    cmp     edx, 0             ; Verifica se há resto
+    jnz     _resultado_decimal ; Se houver resto, vá para _resultado_decimal
+
+_resultado:
+    mov     ebx, eax           ; Move eax (resultado) para ebx
+    mov     eax, msg2          ; Move a mensagem msg2 para eax
+    call    sprint             ; Imprime msg2
+
+    mov     eax, ebx           ; Move ebx (resultado) para eax
+    call    iprint             ; Imprime a média
+
+    mov     eax, pularLinha       ; Move newline para eax
+    call    sprint             ; Imprime uma nova linha
+
+    jmp     _reiniciar
+
+_resultado_decimal:
+    mov     eax, ebx           ; Move ebx (resultado) para eax
+    mov     ebx, 100           ; Move 100 para ebx
+    mul     ebx                ; Multiplica eax por 100
+    div     ecx                ; Divide eax pelo divisor original (antes da subtração)
+
+    mov     ebx, eax           ; Move eax (resultado decimal) para ebx
+    mov     eax, msg4          ; Move a mensagem msg4 para eax
+    call    sprint             ; Imprime msg4
+
+    mov     eax, ebx           ; Move ebx (resultado decimal) para eax
+    call    iprint             ; Imprime o resultado decimal
+
+    mov     eax, pularLinha       ; Move newline para eax
+    call    sprint             ; Imprime uma nova linha
+
+_reiniciar:
+    mov     eax, msg3          ; Move a mensagem msg3 para eax
+    call    sprint             ; Imprime msg3
+
+    mov     eax, pularLinha       ; Move newline para eax
+    call    sprint             ; Imprime uma nova linha
+
+    mov     edx, 255
+    mov     ecx, entrada      ; Grava a entrada em ecx
+    mov     ebx, 0
+    mov     eax, 3            ; Chamada do sistema para ler a entrada
+    int     80h
+
+    mov     eax, entrada      ; Move a entrada para eax
+    call    atoi              ; Chama a função atoi para converter para inteiro
+
+    cmp     eax, 0            ; Compara eax com 0
+    jnz     _start            ; Se eax não for 0, volte para _start
+
+    call    quit              ; Caso contrário, encerre o programa
+
+;------------------------------------------
+; int atoi(inteiro)
+; Função de conversão de ASCII para inteiro (atoi)
+atoi:
+    push    ebx             ; preserva ebx na pilha para ser restaurado após a execução da função
+    push    ecx             ; preserva ecx na pilha para ser restaurado após a execução da função
+    push    edx             ; preserva edx na pilha para ser restaurado após a execução da função
+    push    esi             ; preserva esi na pilha para ser restaurado após a execução da função
+    mov     esi, eax        ; move o ponteiro em eax para esi (nosso número a ser convertido)
+    mov     eax, 0          ; inicializa eax com o valor decimal 0
+    mov     ecx, 0          ; inicializa ecx com o valor decimal 0
+ 
+.multiplyLoop:
+    xor     ebx, ebx        ; redefine ambos os bytes inferiores e superiores de ebx para 0
+    mov     bl, [esi+ecx]   ; move um único byte para o registro ebx
+    cmp     bl, 48          ; compara o valor do byte inferior do registro ebx com o valor ASCII 48 (caractere 0)
+    jl      .finished       ; salta se for menor para a etiqueta finished
+    cmp     bl, 57          ; compara o valor do byte inferior do registro ebx com o valor ASCII 57 (caractere 9)
+    jg      .finished       ; salta se for maior para a etiqueta finished
+ 
+    sub     bl, 48          ; converte o byte inferior do registro ebx para representação decimal do valor ASCII
+    add     eax, ebx        ; adiciona ebx ao nosso valor inteiro em eax
+    mov     ebx, 10         ; move o valor decimal 10 para ebx
+    mul     ebx             ; multiplica eax por ebx para obter o valor da posição
+    inc     ecx             ; incrementa ecx (nosso registrador de contador)
+    jmp     .multiplyLoop   ; continua o loop de multiplicação
+ 
+.finished:
+    cmp     ecx, 0          ; compara o valor de ecx com 0 (nosso contador)
+    je      .restore        ; salta se for igual a 0 (nenhum argumento inteiro foi passado para atoi)
+    mov     ebx, 10         ; move o valor decimal 10 para ebx
+    div     ebx             ; divide eax pelo valor em ebx (neste caso, 10)
+ 
+.restore:
+    pop     esi             ; restaura esi do valor que empurramos para a pilha no início
+    pop     edx             ; restaura edx do valor que empurramos para a pilha no início
+    pop     ecx             ; restaura ecx do valor que empurramos para a pilha no início
+    pop     ebx             ; restaura ebx do valor que empurramos para a pilha no início
+    ret
+;------------------------------------------
+; int slen(String message)
+; Função de cálculo do comprimento da string
+slen:
+    push    ebx
+    mov     ebx, eax
+ 
+nextchar:
+    cmp     byte [eax], 0
+    jz      finished
+    inc     eax
+    jmp     nextchar
+ 
+finished:
+    sub     eax, ebx
+    pop     ebx
+    ret
+ 
+;------------------------------------------
+; void iprint(inteiro)
+; Função de impressão de inteiros (itoa)
+iprint:
+    push    eax             ; preserva eax na pilha para ser restaurado após a execução da função
+    push    ecx             ; preserva ecx na pilha para ser restaurado após a execução da função
+    push    edx             ; preserva edx na pilha para ser restaurado após a execução da função
+    push    esi             ; preserva esi na pilha para ser restaurado após a execução da função
+    mov     ecx, 0          ; contador de quantos bytes precisamos imprimir no final
+ 
+divideLoop:
+    inc     ecx             ; conta cada byte para imprimir - número de caracteres
+    mov     edx, 0          ; esvazia edx
+    mov     esi, 10         ; move 10 para esi
+    idiv    esi             ; divide eax por esi
+    add     edx, 48         ; converte edx para sua representação ASCII - edx contém o restante após uma instrução de divisão
+    push    edx             ; empurra edx (representação de string de um inteiro) para a pilha
+    cmp     eax, 0          ; o inteiro pode ser dividido novamente?
+    jnz     divideLoop      ; salta se não for zero para a etiqueta divideLoop
+ 
+printLoop:
+    dec     ecx             ; diminui a contagem de cada byte que empurramos para a pilha
+    mov     eax, esp        ; movimenta o ponteiro da pilha para eax para imprimir
+    call    sprint          ; chama nossa função de impressão de string
+    pop     eax             ; remove o último caractere da pilha para avançar esp
+    cmp     ecx, 0          ; já imprimimos todos os bytes que empurramos para a pilha?
+    jnz     printLoop       ; salta se não for zero para a etiqueta printLoop
+ 
+    pop     esi             ; restaura esi do valor que empurramos para a pilha no início
+    pop     edx             ; restaura edx do valor que empurramos para a pilha no início
+    pop     ecx             ; restaura ecx do valor que empurramos para a pilha no início
+    pop     eax             ; restaura eax do valor que empurramos para a pilha no início
+    ret
+    
+;------------------------------------------
+; void sprint(String message)
+; Função de impressão de strings
+sprint:
+    push    edx
+    push    ecx
+    push    ebx
+    push    eax
+    call    slen
+ 
+    mov     edx, eax
+    pop     eax
+ 
+    mov     ecx, eax
+    mov     ebx, 1
+    mov     eax, 4
+    int     80h
+ 
+    pop     ebx
+    pop     ecx
+    pop     edx
+    ret
+
+;------------------------------------------
+; void quit()
+; Encerra o programa e restaura os recursos
+quit:
+    mov     ebx, 0
+    mov     eax, 1
+    int     80h
+    ret
